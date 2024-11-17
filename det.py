@@ -1,5 +1,3 @@
-# Kun(20241117): 检测一张图片中的map
-
 import torch
 import sys
 
@@ -86,7 +84,8 @@ class predict:
         count = Counter(item[0] for item in true_boxes)
 
         # 转换为字典格式并打印
-        true_count = dict(count)
+        true_count = dict(count)    # {72: 1, 69: 1, 68: 1, 60: 1, 56: 1, 45: 6, 41: 10, 40: 9, 39: 10}
+        
         tp = {int(row[-1]): [] for row in pred}
         fp = {int(row[-1]): [] for row in pred}
         for pred_xmin, pred_ymin, pred_xmax, pred_ymax, conf, pred_class_id in pred:
@@ -110,8 +109,7 @@ class predict:
             prec = tp_numpy / current
             rec = (tp_numpy / true_count[class_id]) if class_id in true_count.keys() else np.array([0]*(len(prec)))
             ap.append(self.voc_ap(rec, prec))
-
-        return np.sum(ap) / len(tp.keys())  
+        return np.sum(ap) / len(true_count)  #考虑到有些检测出的类在label中都没出现过，分母应为len(true_count)
 
 
 
@@ -144,7 +142,9 @@ class predict:
                             box[2].item()/weigh, box[3].item()/height, box[4].item()
                             , int(box[5].item())] for box in det]
 
+        
         true_boxes = sorted(true_boxes, key = lambda x : x[0], reverse=True)
+        # 按照类和置信度排序
         det_list = sorted(det_list, key = lambda x: (x[-1], x[-2]), reverse=True)
         mAP_50 = self.calculate_map_at_iou(det_list, true_boxes, 0.75)
         return mAP_50
